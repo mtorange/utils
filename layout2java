@@ -1,0 +1,152 @@
+#!/usr/bin/ruby -w
+require 'rexml/document'
+require 'optparse'
+
+$opt_genearte_class = false
+$opt_include_all_views = false
+$opt_package_name = nil
+$opt_class_name = nil
+optParser = OptionParser.new { |opts|
+	opts.banner = "Usage: layout2java.rb [options]"
+	opts.on("-c", "--generate-class", "Generate full activity class") do |v| 
+		$opt_genearte_class = v 
+	end 
+	opts.on("-a", "--include-all-views", "Include All Views Array") do |v| 
+		$opt_include_all_views = v 
+	end 
+	opts.on("-p", "--package-name name", String, "Package Name") do |v| 
+		$opt_package_name = v 
+	end 
+	opts.on("-n", "--class-name name", String, "Class Name") do |v| 
+		$opt_class_name = v 
+	end 
+	opts.on('-h', '--help', 'Diaply this help') do  
+		STDERR.puts opts
+		exit
+	end 
+}
+
+begin
+	optParser.parse!(ARGV)
+	if $opt_genearte_class
+		if $opt_class_name.nil?
+			$opt_class_name = "AllMemberViewsActivity"
+		end
+	else
+		if not $opt_package_name.nil? or not $opt_class_name.nil?
+			STDERR.puts optParser
+			exit
+		end
+	end
+rescue OptionParser::ParseError => e
+	STDERR.puts e
+	STDERR.puts
+	STDERR.puts optParser
+	exit
+end
+
+
+$outMemberDefinition=[]
+$outFindViewById=[]
+$outAddViewList=[]
+$idName=[]
+$outWidgets=Set.new
+
+def traverse(elms)
+	elms.each_child { |el|
+		if  el.class == REXML::Element
+			id = nil
+			$idName.each { |attrnm|
+				s = el.attributes[attrnm]
+				id = s if !s.nil?
+			}
+			if !id.nil? && id.start_with?("@+id/")
+				nid = id.sub(/^@\+id\//, "")
+
+				$outMemberDefinition << "protected #{el.name} m#{nid} = null;"
+				$outFindViewById  << "m#{nid} = (#{el.name})findViewById(R.id.#{nid});"
+				$outAddViewList  << "mAllViews.add(m#{nid});"
+				$outWidgets <<  el.name 
+			end
+			traverse(el)
+		end
+	}
+end
+
+xmldoc = REXML::Document.new($stdin.read)
+
+xmldoc.root.attributes.each {|name, value|
+	if ("http://schemas.android.com/apk/res/android" == value) &&  name.start_with?("xmlns:")
+		$idName << "#{name.sub(/^xmlns:/, "")}:id"
+	end
+}
+
+traverse(xmldoc)
+
+
+$atab = ""
+if $opt_genearte_class
+	puts "package #{$opt_package_name};" if not $opt_package_name.nil?
+	puts ""
+	
+	if $opt_include_all_views
+		puts "import java.util.ArrayList;"
+		puts "import android.view.View;"
+	end
+	
+	puts "import android.app.Activity;"
+	puts "import android.widget.Toast;"
+	$outWidgets.each { |n|
+		puts "import android.widget.#{n};"
+	}
+	puts ""
+	puts "public class #{$opt_class_name} extends Activity {"
+	$atab = "\t"
+else
+
+	puts "//-------------------------------------------------------"
+	puts "//-- widget variables -----------------------------------"
+	puts "//-------------------------------------------------------"
+end
+
+if $opt_include_all_views
+	puts "#{$atab}protected ArrayList<View> mAllViews = new ArrayList<View>();"
+	puts ""
+end
+
+$outMemberDefinition.each { |line|
+	puts "#{$atab}#{line}"
+}
+
+puts ""
+puts "#{$atab}protected void _initializeWidgetVariables() {"
+$outFindViewById.each { |line|
+	puts "#{$atab}\t#{line}"
+}
+if $opt_include_all_views
+	puts ""
+	$outAddViewList.each { |line|
+		puts "#{$atab}\t#{line}"
+	}
+end
+puts "#{$atab}}"
+if $opt_genearte_class
+	puts ""
+	puts "\t@Override"
+	puts "\tpublic void setContentView(int resId) {"
+	puts "\t\tsuper.setContentView(resId);"
+	puts "\t\t_initializeWidgetVariables();"
+	puts "\t}"
+	puts ""	
+	puts "\tprotected void toast(String s) { toast(s, true); }"
+	puts "\tprotected void toast(String s, boolean bShort)"
+	puts "\t{"
+	puts "\t\tToast.makeText(this, s, bShort ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG).show();"
+	puts "\t}"
+	puts ""
+	puts "}"
+else
+	puts "//-------------------------------------------------------"
+	puts "//-------------------------------------------------------"
+end
+

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+function usage() {
+	echo "Usage:" $0 "source-path"
+}
+
+if [ $# -ne 1 ]; then
+	usage
+	exit
+fi
+
+
+
+bn=./`/usr/bin/basename "$1"`
+
+echo "RUN-COMMAND:" /bin/mkdir -p "$bn"
+/bin/mkdir -p "$bn"
+echo "RUN-COMMAND:" ln "$1"'/*' "$bn"
+ln "$1"/* "$bn"

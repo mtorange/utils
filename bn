@@ -1,0 +1,59 @@
+#!/bin/csh -f
+
+set prog='~/bin/bnews -u -s binnews.hananet.net  '
+set choices= (0 1 2 3 4 5 6 7 8 9 a b c d e f g h i j k l m n o p q r s t u v w x y z)
+set groups= (                                       \
+	alt.binaries.korea                          \
+	korea.binaries.movies                       \
+	korea.binaries.warez                        \
+	korea.binaries.test                         \
+	korea.binaries.music.mp3                    \
+	korea.binaries.music.mp3.high-quality       \
+	korea.binaries.animations                   \
+	alt.binaries.sounds.korean                  \
+	han.binaries.photo                          \
+	alt.binaries.boneless                       \
+	)
+
+
+
+set sel=$1
+if ( "Z"$sel != "Z") then
+	goto param
+endif
+
+redo:
+echo	"     ---------------------------------"
+set i=1
+while ($i <= $#groups)
+	echo "     " $choices[$i]') '$groups[$i]
+	@ i ++
+end
+echo	"     ---------------------------------"
+echo -n "        Select news group .. "
+
+set sel=$<
+
+param:
+set i=1
+while ($i <= $#groups)
+	if ($sel == $choices[$i]) then
+		echo ">>--------------------------------------------->>"
+		echo "Your choice --> " $groups[$i] 
+		echo ">>--------------------------------------------->>"
+		exec $prog -g $groups[$i]
+	endif
+	@ i ++
+end
+
+cat << EOF
+
+	..........................................
+	..........................................
+	...........  Invalid Selection
+	..........................................
+	..........................................
+
+EOF
+goto redo
+

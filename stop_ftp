@@ -1,0 +1,3 @@
+sudo -s launchctl stop com.apple.ftpd
+sudo -s launchctl unload -w /System/Library/LaunchDaemons/ftp.plist 
+
