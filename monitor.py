@@ -56,7 +56,7 @@ class Option:
 				if opt in ('-F', '--field-delimiter'): self.fieldDelimiter = arg
 				if opt in ('-w', '--display-width'): self.displayWidth = int(arg)
 
-			if self.command == None: raise getopt.GetoptError()
+			if self.command == None: raise ValueError("")
 		except (getopt.GetoptError, ValueError):
 			if exitOnError: self.usage()
 			return False
