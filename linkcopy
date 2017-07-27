@@ -1,19 +1,42 @@
 #!/bin/bash
 
+MKDIR=/bin/mkdir
+LN=/bin/ln
 function usage() {
-	echo "Usage:" $0 "source-path"
+	echo "Usage:" $0 "source(s)" "destinatin-path"
 }
 
-if [ $# -ne 1 ]; then
+function linkcopy() {
+	src="$1"
+	dst_path="$2"
+	if [ -f "$src" ]; then
+		echo $LN "$src" "$dst_path"
+		$LN "$src" "$dst_path"
+	elif [ -d "$src" ]; then
+		if [ "$src" != ".." -a "$src" != "." ]; then
+			mkd=`/usr/bin/basename "$src"`
+			new_dst_path="$dst_path"/"$mkd"
+			echo $MKDIR "$new_dst_path"
+			$MKDIR "$new_dst_path"
+			for f in "$src"/*; 
+			do
+				linkcopy "$f" "$new_dst_path"
+			done
+		fi
+	fi
+}
+
+if [ $# -lt 2 ]; then
 	usage
 	exit
 fi
 
+srcs=("$@")
+let last=${#srcs[@]}-1
+dst="${srcs[$last]}"
+unset srcs[$last]
 
-
-bn=./`/usr/bin/basename "$1"`
-
-echo "RUN-COMMAND:" /bin/mkdir -p "$bn"
-/bin/mkdir -p "$bn"
-echo "RUN-COMMAND:" ln "$1"'/*' "$bn"
-ln "$1"/* "$bn"
+for s in "${srcs[@]}";
+do
+	linkcopy "$s" "$dst"
+done
